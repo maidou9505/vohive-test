@@ -1,8 +1,11 @@
 #!/bin/sh
 set -eu
 
-REPO="${VOHIVE_RELEASE_REPO:-iniwex5/vohive-release}"
+# GitHub仓库地址，可环境变量覆盖
+REPO="${VOHIVE_RELEASE_REPO:-maidou9505/vohive-test}"
+# 更新渠道，默认stable稳定版
 CHANNEL="${VOHIVE_RELEASE_CHANNEL:-stable}"
+# 用户通过--version传入的版本参数，初始空
 VERSION=""
 NO_SYSTEMD=0
 DRY_RUN=0
@@ -97,13 +100,14 @@ fetch_text() {
   cat "$tmp_file"
 }
 
+
 resolve_version() {
   requested="$1"
-
+  # 未传入--version则使用全局CHANNEL变量
   if [ -z "${requested}" ]; then
     requested="${CHANNEL}"
   fi
-
+    # 输入latest/stable，联网请求GitHub API获取最新release标签
   case "${requested}" in
     latest|stable)
       api_url="https://api.github.com/repos/${REPO}/releases/latest"
@@ -121,6 +125,7 @@ resolve_version() {
   esac
 }
 
+# 参数解析函数
 parse_args() {
   while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -304,25 +309,30 @@ print_access_info() {
 }
 
 main() {
+  # 1. 解析启动参数
   parse_args "$@"
 
+  # 2. 校验基础命令 + 下载工具
   need_cmd uname
   need_cmd mktemp
   need_download_cmd
-
+  # 3. 校验系统必须是Linux
   os="$(uname -s | tr '[:upper:]' '[:lower:]')"
   if [ "${os}" != "linux" ]; then
     err "不支持的系统: ${os}"
     exit 1
   fi
-
+  # 4. 创建临时目录，脚本退出自动清理（trap捕获信号）
   TMP_DIR="$(mktemp -d)"
   trap 'rm -rf "${TMP_DIR}"' EXIT INT TERM
-
+  # 5. 识别CPU架构
   arch="$(detect_arch)"
+  # 6. 解析最终要安装的版本号（联网拉取latest或使用指定版本）
   resolved_version="$(resolve_version "${VERSION}")"
+  # 7. 拼接GitHub二进制下载地址
   asset="vohive_${resolved_version}_linux_${arch}"
   base="https://github.com/${REPO}/releases/download/${resolved_version}"
+  # 8. 在线下载程序到临时目录
   downloaded="${TMP_DIR}/${asset}"
   extracted="${downloaded}"
 
@@ -336,13 +346,14 @@ main() {
     err "下载的二进制文件不存在"
     exit 1
   fi
-
+  # 9. 旧版本备份（升级场景）
   if [ -x "${BIN_PATH}" ]; then
     log "检测到已安装版本，备份到: ${BACKUP_PATH}"
     run_root cp -f "${BIN_PATH}" "${BACKUP_PATH}"
   fi
-
+  # 10. 创建目录、生成配置文件
   install_default_config
+  # 定义回滚函数：服务安装失败时恢复旧程序
   rollback_needed=1
 
   rollback() {
@@ -354,12 +365,12 @@ main() {
       fi
     fi
   }
-
+  # 11. 将下载的二进制拷贝到正式安装目录，赋予755权限
   run_root install -m 0755 "${extracted}" "${BIN_PATH}"
-
+  # 12. 识别系统平台
   ACTIVE_PLATFORM="$(detect_platform)"
   service_registered=0
-
+  # 13. 注册系统服务（未开启--no-systemd时）
   if [ "${NO_SYSTEMD}" = "0" ]; then
     case "${ACTIVE_PLATFORM}" in
       openwrt)
@@ -391,6 +402,7 @@ main() {
   fi
 
   rollback_needed=0
+  # 14. 输出安装完成信息
   log "安装完成: ${BIN_PATH} (${resolved_version})"
 
   if [ "${service_registered}" = "1" ]; then
