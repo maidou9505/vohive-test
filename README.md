@@ -100,19 +100,19 @@ AT+CFUN=1,1：重启模组
 
 ## 四、部署方式一：一键安装
 ```
-curl -fsSL https://raw.githubusercontent.com/iniwex5/vohive-release/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/maidou9505/Vohive-test/main/install.sh | bash
 ```
 指定版本：
 ```
-curl -fsSL https://raw.githubusercontent.com/iniwex5/vohive-release/master/install.sh | bash -s -- --version v1.0.0
+curl -fsSL https://raw.githubusercontent.com/maidou9505/Vohive-test/main/install.sh | bash -s -- --version v1.0.0
 ```
 仅安装二进制（不安装 systemd）：
 ```
-curl -fsSL https://raw.githubusercontent.com/iniwex5/vohive-release/master/install.sh | bash -s -- --no-systemd
+curl -fsSL https://raw.githubusercontent.com/maidou9505/Vohive-test/main/install.sh | bash -s -- --no-systemd
 ```
 卸载：
 ```
-curl -fsSL https://raw.githubusercontent.com/iniwex5/vohive-release/master/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/maidou9505/Vohive-test/main/install.sh | bash
 ```
 访问后台：
 ```
